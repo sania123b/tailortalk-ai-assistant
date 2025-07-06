@@ -9,28 +9,25 @@ SERVICE_ACCOUNT_FILE = 'service_account.json'
 def get_calendar_service():
     """
     Creates the Google Calendar service client.
-    If the service account file does not exist yet,
-    write it from the GOOGLE_CREDENTIALS secret with \\n replaced by real line breaks.
+    Always overwrite service_account.json to guarantee valid PEM.
     """
 
-    # ✅ If file missing, write it fresh from secrets
-    if not os.path.exists(SERVICE_ACCOUNT_FILE) and os.getenv("GOOGLE_CREDENTIALS"):
+    # ✅ Always overwrite — avoid stale/broken PEM
+    if os.getenv("GOOGLE_CREDENTIALS"):
         creds_json = os.environ["GOOGLE_CREDENTIALS"].replace('\\n', '\n')
         with open(SERVICE_ACCOUNT_FILE, "w") as f:
             f.write(creds_json)
 
-        # ✅ DEBUG: Show written output to confirm PEM has real line breaks
+        # ✅ Debug: show first part of written file
+        print("----- DEBUG: service_account.json written -----")
         with open(SERVICE_ACCOUNT_FILE) as f:
-            print("----- DEBUG: Written service_account.json -----")
-            print(f.read()[:300])  # only print first 300 chars for safety
+            print(f.read()[:300])  # Show only first 300 chars
 
     # ✅ Load credentials from the written file
     credentials = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES
     )
-
     return build('calendar', 'v3', credentials=credentials)
-
 
 def create_event(summary, start_time, end_time):
     """
@@ -44,7 +41,7 @@ def create_event(summary, start_time, end_time):
         'end': {'dateTime': end_time, 'timeZone': 'Asia/Kolkata'},
     }
 
-    # ✅ Replace with your real calendarId (or use 'primary')
+    # ✅ Use your calendar ID — make sure service account has permission!
     created_event = service.events().insert(
         calendarId='1a47e2f06ad9ef9f3644d97c75f548d20f969e6f12facae49ea496fdcaa2ce18@group.calendar.google.com',
         body=event
